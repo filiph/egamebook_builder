@@ -1,0 +1,18 @@
+analyzer:
+   exclude:
+     - lib/functions_serializer.dart
+     - lib/src/generators/writers_input_generator.dart
+     - lib/src/generators/functions_serializer_generator.dart
+     - lib/src/parse_writers_input.dart
+     - lib/src/parse_writers_input/**
+
+# Lint rules and documentation, see http://dart-lang.github.io/linter/lints
+linter:
+  rules:
+    - cancel_subscriptions
+    - hash_and_equals
+    - iterable_contains_unrelated_type
+    - list_remove_unrelated_type
+    - test_types_in_equals
+    - unrelated_type_equality_checks
+    - valid_regexps
