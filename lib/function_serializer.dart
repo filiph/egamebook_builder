@@ -3,9 +3,11 @@ import 'package:built_value/serializer.dart';
 /// Used for annotating [FunctionSerializer] top-level variables for
 /// source generation.
 class GatherFunctionsFrom {
+  final Type functionType;
+
   final List<String> globs;
 
-  const GatherFunctionsFrom(this.globs);
+  const GatherFunctionsFrom(this.functionType, this.globs);
 
   @override
   String toString() => "Functions for this FunctionSerializer will be gathered "

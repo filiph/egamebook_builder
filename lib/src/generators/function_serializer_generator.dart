@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:edgehead/sourcegen/functions_serializer.dart';
-import 'package:edgehead/sourcegen/src/ensure_part_import.dart';
-import 'package:edgehead/sourcegen/src/recase/recase.dart';
 import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
+
+import '../../function_serializer.dart';
+import '../ensure_part_import.dart';
+import '../recase/recase.dart';
 
 /// Generator for FunctionSerializer.
 class FunctionSerializerGenerator extends Generator {
@@ -20,7 +21,7 @@ class FunctionSerializerGenerator extends Generator {
 
     // Assert part import.
     final fileName = library.element.source.shortName.replaceAll('.dart', '');
-    ensurePartImport(library, fileName);
+    ensurePartImport(library, fileName, extension: '.gathered.dart');
 
     final annotated = library
         .annotatedWith(new TypeChecker.fromRuntime(GatherFunctionsFrom))
@@ -39,11 +40,11 @@ class FunctionSerializerGenerator extends Generator {
             "must be top level variable declarations.");
       }
       final variable = element as TopLevelVariableElement;
-      if (variable.type is! InterfaceType) {
+      if (variable.type is! ParameterizedType) {
         throw new InvalidGenerationSourceError(
             "Type of variable must be FunctionSerializer<SomeCallback>");
       }
-      final interfaceType = variable.type as InterfaceType;
+      final interfaceType = variable.type as ParameterizedType;
       if (interfaceType.name != 'FunctionSerializer') {
         // TODO: find out how to create a DartType() and use it to check
         //       via interfaceType.isAssignableTo(functionSerializerType)
@@ -52,13 +53,31 @@ class FunctionSerializerGenerator extends Generator {
             "annotation need to be of type FunctionSerializer, but we found "
             "one with type ${interfaceType.name}");
       }
-      final functionType = interfaceType.typeArguments.single;
-      final variableName =
-          "_\$" "${new ReCase(functionType.name).camelCase}" "Serializer";
+      final FunctionType functionType = interfaceType.typeArguments.single;
+
+      /// Typedefs don't have 'name', apparently. So we get it from
+      /// the annotation.
+      final DartType functionTypeFromAnnotation =
+          declaration.annotation.read("functionType").typeValue;
+
+      // TODO: find out why this always fails
+      // if (functionTypeFromAnnotation.isAssignableTo(functionType)) {
+      //   throw new InvalidGenerationSourceError(
+      //       "The type parameter of the variable declaration doesn't correspond "
+      //       "to the type provided to the @GatherFunctionsFrom annotation. "
+      //       "Type parameter: $functionType. "
+      //       "Annotation: $functionTypeFromAnnotation");
+      // }
+
+      final String functionTypeName = functionTypeFromAnnotation.name;
+
+      final variableName = "_\$"
+          "${new ReCase(functionTypeName).camelCase}"
+          "Serializer";
 
       // final _$someCallbackSerializer = new FunctionSerializer<SomeCallback>({
       result.writeln("final $variableName = "
-          "new FunctionSerializer<${functionType.name}>({");
+          "new FunctionSerializer<$functionTypeName>({");
 
       final globs = declaration.annotation
           .read("globs")

@@ -1,8 +1,6 @@
 analyzer:
    exclude:
-     - lib/functions_serializer.dart
      - lib/src/generators/writers_input_generator.dart
-     - lib/src/generators/functions_serializer_generator.dart
      - lib/src/parse_writers_input.dart
      - lib/src/parse_writers_input/**
 

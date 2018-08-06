@@ -25,7 +25,7 @@ class InstanceSerializerGenerator extends Generator {
     // Assert part import.
     final fileName =
         gatherLibrary.element.source.shortName.replaceAll('.dart', '');
-    ensurePartImport(gatherLibrary, fileName, extension: '.gathered.g.dart');
+    ensurePartImport(gatherLibrary, fileName, extension: '.gathered.dart');
 
     final annotated = gatherLibrary
         .annotatedWith(new TypeChecker.fromRuntime(GatherInstancesFrom))
