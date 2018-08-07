@@ -1,9 +1,8 @@
-import 'package:analyzer/analyzer.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:logging/logging.dart';
 
 import 'add_writers_statements.dart';
-import 'escape_dollar_sign.dart';
+import 'escape_writers_text.dart';
 import 'generate_rescue_situation.dart';
 import 'generated_game_object.dart';
 import 'method_builders.dart';
@@ -32,64 +31,65 @@ class GeneratedAction extends GeneratedGameObject {
             map['ACTION'], reCase(map['ACTION']).pascalCase, actionType, path);
 
   @override
-  Iterable<AstBuilder<AstNode>> finalizeAst() sync* {
+  Iterable<Spec> finalizeAst() sync* {
     var className = name;
     String forLocation = _map.containsKey('FOR_LOCATION')
         ? reCase(_map['FOR_LOCATION']).snakeCase
         : null;
-    var classBuilder = new ClassBuilder(className);
-    classBuilder.setExtends(actionType);
+
+    var classBuilder = ClassBuilder()
+      ..name = className
+      ..extend = actionType;
 
     bool hasRescue =
         _map.containsKey('RESCUE_COMMAND') && _map['RESCUE_COMMAND'].isNotEmpty;
     var rescueSituationClassName = '${className}RescueSituation';
 
-    var classType = new TypeBuilder(className);
+    var classType = TypeReference((b) => b..symbol = className);
 
-    MethodBuilder getCommandBuilder =
-        createNullObjectMethod('getCommand', new TypeBuilder('String'))
-          ..addStatement(literal(_map['COMMAND']).asReturn());
-    classBuilder.addMethod(getCommandBuilder);
+    final getCommandBuilder = createNullObjectMethod('getCommand', stringType)
+      ..block.addExpression(literal(_map['COMMAND']).returned);
 
-    classBuilder.addField(new FieldBuilder.asFinal("name",
-        type: stringType, value: literal(writersName))
-      ..addAnnotation(overrideAnnotation));
+    classBuilder.methods.add(getCommandBuilder.bake());
 
-    MethodBuilder isApplicableBuilder = _createIsApplicableBuilder(forLocation);
-    classBuilder.addMethod(isApplicableBuilder);
+    final nameField = Field((b) => b
+      ..name = 'name'
+      ..modifier = FieldModifier.final$
+      ..type = stringType
+      ..assignment = literal(writersName).code
+      ..annotations.add(overrideAnnotation));
+    classBuilder.fields.add(nameField);
+
+    Method isApplicableBuilder = _createIsApplicableBuilder(forLocation);
+    classBuilder.methods.add(isApplicableBuilder);
 
     var successChance = parsePercent(_map['COMPLETE_SUCCESS_PROBABILITY']);
 
-    MethodBuilder applySuccessBuilder =
+    Method applySuccessBuilder =
         _createApplySuccessBuilder(successChance, className);
-    classBuilder.addMethod(applySuccessBuilder);
+    classBuilder.methods.add(applySuccessBuilder);
 
-    MethodBuilder applyFailureBuilder = _createApplyFailureBuilder(
+    Method applyFailureBuilder = _createApplyFailureBuilder(
         successChance, hasRescue, rescueSituationClassName, className);
-    classBuilder.addMethod(applyFailureBuilder);
+    classBuilder.methods.add(applyFailureBuilder);
 
     final reasonedChance =
         reasonedSuccessChanceType.constInstance([literal(successChance)]);
 
-    var successChanceBuilder = createActorSimWorldNullMethod(
+    final successChanceBuilder = createActorSimWorldNullMethod(
         'getSuccessChance', reasonedSuccessChanceType)
-      ..addStatement(reasonedChance.asReturn());
-    classBuilder.addMethod(successChanceBuilder);
+      ..block.addExpression(reasonedChance.returned);
+    classBuilder.methods.add(successChanceBuilder.bake());
 
-    var rerollableBuilder = new MethodBuilder.getter('rerollable',
-        returnType: boolType, returns: literal(false))
-      ..addAnnotation(overrideAnnotation);
-    classBuilder.addMethod(rerollableBuilder);
+    classBuilder.methods.add(_createGetter('rerollable', boolType, false));
 
     var rollReasonBuilder =
         createActorSimWorldNullMethod('getRollReason', stringType)
-          ..addStatement(literal('Will you be successful?').asReturn());
-    classBuilder.addMethod(rollReasonBuilder);
+          ..block.addExpression(literal('Will you be successful?').returned);
+    classBuilder.methods.add(rollReasonBuilder.bake());
 
-    var rerollResourceBuilder = new MethodBuilder.getter('rerollResource',
-        returnType: resourceType, returns: literal(null))
-      ..addAnnotation(overrideAnnotation);
-    classBuilder.addMethod(rerollResourceBuilder);
+    classBuilder.methods
+        .add(_createGetter('rerollResource', resourceType, null));
 
     String helpMessage = _map['HINT'];
     if (helpMessage != null &&
@@ -98,23 +98,21 @@ class GeneratedAction extends GeneratedGameObject {
       // TODO: create the other action, with ADVANTAGE_HINT_ADDENDUM
     }
 
-    var helpMessageBuilder = new MethodBuilder.getter('helpMessage',
-        returnType: stringType, returns: literal(helpMessage))
-      ..addAnnotation(overrideAnnotation);
-    classBuilder.addMethod(helpMessageBuilder);
+    classBuilder.methods
+        .add(_createGetter('helpMessage', stringType, helpMessage));
 
-    var isAggressiveBuilder = new MethodBuilder.getter('isAggressive',
-        returnType: boolType, returns: literal(false))
-      ..addAnnotation(overrideAnnotation);
-    classBuilder.addMethod(isAggressiveBuilder);
+    classBuilder.methods.add(_createGetter('isAggressive', boolType, false));
 
-    var singletonBuilder = new FieldBuilder.asFinal('singleton',
-        type: classType, value: classType.newInstance([]));
-    classBuilder.addField(singletonBuilder, asStatic: true);
+    classBuilder.fields.add(Field((b) => b
+      ..static = true
+      ..modifier = FieldModifier.final$
+      ..name = 'singleton'
+      ..type = classType
+      ..assignment = classType.newInstance([]).code));
 
-    //  START HERE --  then add FAILURE_BEGINNING_DESCRIPTION in applyFailure
+    //  TODO add FAILURE_BEGINNING_DESCRIPTION in applyFailure
     //   https://trello.com/c/S1XPDQ7/1-parser-for-writer-s-output#comment-58682ee019b9e7b833655fb7
-    yield classBuilder;
+    yield classBuilder.build();
 
     if (hasRescue) {
       yield generateRescueSituation(
@@ -133,93 +131,104 @@ class GeneratedAction extends GeneratedGameObject {
     }
   }
 
-  MethodBuilder _createApplyFailureBuilder(num successChance, bool hasRescue,
+  Method _createGetter(String name, TypeReference type, Object returnValue) {
+    return Method((b) => b
+      ..type = MethodType.getter
+      ..name = name
+      ..returns = type
+      ..annotations.add(overrideAnnotation)
+      ..body = literal(returnValue).code);
+  }
+
+  Method _createApplyFailureBuilder(num successChance, bool hasRescue,
       String rescueSituationClassName, String className) {
     var applyFailureBuilder =
         createActionContextNullMethod('applyFailure', stringType);
     if (successChance == 1.0) {
-      applyFailureBuilder
-          .addStatement(stateErrorThrow('Success chance is 100%'));
+      applyFailureBuilder.block.statements
+          .add(stateErrorThrow('Success chance is 100%'));
     } else {
       var failureBeginningDescription = _map['FAILURE_BEGINNING_DESCRIPTION'];
-      applyFailureBuilder.addStatements(
+      applyFailureBuilder.block.statements.addAll(
           createDescriptionStatements(failureBeginningDescription ?? ''));
       if (hasRescue) {
-        applyFailureBuilder
-            .addStatement(reference('w').property('pushSituation').call([
-          reference(rescueSituationClassName).newInstance(
-              [reference('w').invoke('randomInt', [])],
-              constructor: 'initialized')
+        applyFailureBuilder.block
+            .addExpression(refer('w').property('pushSituation').call([
+          refer(rescueSituationClassName).newInstanceNamed(
+              'initialized', [refer('w').property('randomInt').call([])])
         ]));
       } else {
         // No rescue, but we might have FAILURE_EFFECT and FAILURE_DESCRIPTION
         var failureDescription = _map['FAILURE_DESCRIPTION'];
-        applyFailureBuilder.addStatements(
-            createDescriptionStatements(failureDescription ?? ''));
+        applyFailureBuilder.block.statements
+            .addAll(createDescriptionStatements(failureDescription ?? ''));
         if (_map.containsKey('FAILURE_EFFECT')) {
-          addStatements(_map['FAILURE_EFFECT'], applyFailureBuilder);
+          addStatements(_map['FAILURE_EFFECT'], applyFailureBuilder.block);
         }
       }
-      applyFailureBuilder.addStatement(
-          literal('\${a.name} fails to perform $className').asReturn());
+      applyFailureBuilder.block.addExpression(
+          literal('\${a.name} fails to perform $className').returned);
     }
-    return applyFailureBuilder;
+    return applyFailureBuilder.bake();
   }
 
-  MethodBuilder _createApplySuccessBuilder(
-      num successChance, String className) {
-    var applySuccessBuilder =
+  Method _createApplySuccessBuilder(num successChance, String className) {
+    final applySuccessBuilder =
         createActionContextNullMethod('applySuccess', stringType);
 
     if (successChance == 0) {
-      applySuccessBuilder
-          .addStatement(stateErrorThrow('Success chance is 0%.'));
+      applySuccessBuilder.block.statements
+          .add(stateErrorThrow('Success chance is 0%.'));
     } else {
       assert(_map.containsKey('COMPLETE_SUCCESS_DESCRIPTION'),
           "$name is missing COMPLETE_SUCCESS_DESCRIPTION: $_map");
       var successDescription =
-          escapeDollarSign(_map['COMPLETE_SUCCESS_DESCRIPTION']);
-      applySuccessBuilder
-          .addStatements(createDescriptionStatements(successDescription ?? ''));
+          escapeWritersText(_map['COMPLETE_SUCCESS_DESCRIPTION']);
+      applySuccessBuilder.block.statements
+          .addAll(createDescriptionStatements(successDescription ?? ''));
       if (_map['SUCCESS_EFFECT'] != null) {
         String successEffectBlock = _map['SUCCESS_EFFECT'];
-        addStatements(successEffectBlock, applySuccessBuilder);
+        addStatements(successEffectBlock, applySuccessBuilder.block);
       }
-      applySuccessBuilder.addStatement(
-          literal('\${a.name} successfully performs $className').asReturn());
+      applySuccessBuilder.block.addExpression(
+          literal('\${a.name} successfully performs $className').returned);
     }
-    return applySuccessBuilder;
+    return applySuccessBuilder.bake();
   }
 
-  MethodBuilder _createIsApplicableBuilder(String forLocation) {
+  Method _createIsApplicableBuilder(String forLocation) {
     var isApplicableBuilder =
         createActorSimWorldNullMethod("isApplicable", boolType);
     if (forLocation != null) {
-      isApplicableBuilder.addStatement((reference(worldParameter.name)
+      final locationCondition = (refer(worldParameter.name)
               .property("currentSituation")
-              .castAs(roomRoamingSituationType))
-          .parentheses()
+              .asA(roomRoamingSituationType))
           .property("currentRoomName")
-          .notEquals(literal(forLocation))
-          .asIf()
-            ..addStatement(literal(false).asReturn()));
+          .notEqualTo(literal(forLocation));
+      isApplicableBuilder.block.statements
+          .add(_createIfGuard(locationCondition, false));
     }
     if (_map['PREREQUISITES'] != null) {
-      var ifStatement = new ExpressionBuilder.raw((_) => _map['PREREQUISITES'])
-          .parentheses()
-          .notEquals(literal(true))
-          .asIf()
-            ..addStatement(literal(false).asReturn());
-      try {
-        ifStatement.buildStatement();
-        isApplicableBuilder.addStatement(ifStatement);
-      } catch (e) {
-        log.severe('Bad expression: ${_map['PREREQUISITES']}');
-        addTodoToMethod(isApplicableBuilder,
-            'PLEASE IMPLEMENT PREREQUISITE: ${_map['PREREQUISITES']}');
-      }
+      final rawIfStatement = Code('if (!(${_map['PREREQUISITES']})) {'
+          '  return false;'
+          '}');
+      isApplicableBuilder.block.statements.add(rawIfStatement);
     }
-    isApplicableBuilder.addStatement(literal(true).asReturn());
-    return isApplicableBuilder;
+    isApplicableBuilder.block.addExpression(literal(true).returned);
+    return isApplicableBuilder.bake();
+  }
+
+  final _dartEmitter = DartEmitter();
+
+  /// Generates a piece of code that will return literal [returnValue]
+  /// if [condition] is `true`.
+  ///
+  /// This is here until https://github.com/dart-lang/code_builder/issues/223
+  /// is resolved.
+  Code _createIfGuard(Expression condition, Object returnValue) {
+    final conditionString = condition.accept(_dartEmitter).toString();
+    final returnStatement = literal(returnValue).returned.statement;
+    final returnString = returnStatement.accept(_dartEmitter).toString();
+    return Code('if ($conditionString) { $returnString }');
   }
 }

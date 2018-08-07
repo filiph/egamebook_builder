@@ -1,12 +1,12 @@
 import 'dart:collection';
 
 import 'package:code_builder/code_builder.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/method_builders.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/types.dart';
 import 'package:meta/meta.dart' hide literal;
 
-import 'escape_dollar_sign.dart';
+import 'escape_writers_text.dart';
+import 'method_builders.dart';
 import 'parameters.dart';
+import 'types.dart';
 
 /// The keyword to end a [BlockType.code] block and start a [BlockType.text]
 /// block.
@@ -39,7 +39,7 @@ final RegExp _whiteSpaceOnly = new RegExp(r"^\s*$");
 
 /// Parses a block of text (containing a `[[CODE]]` block or not) and returns
 /// an iterable of statements.
-Iterable<StatementBuilder> createDescriptionStatements(String text) {
+Iterable<Code> createDescriptionStatements(String text) {
   final root = parseBlocks(text ?? '');
   final visitor = new SequenceBlockVisitor();
   root.accept(visitor);
@@ -261,10 +261,12 @@ enum BlockType {
   ruleCondition,
 }
 
-/// Visits a [Block] of type [BlockType.sequence] and fills [statements]
+/// Visits a [Block] of type [BlockType.sequence] and fills [_builder]
 /// with generated code.
 class SequenceBlockVisitor {
-  final List<StatementBuilder> statements = [];
+  final BlockBuilder _builder = BlockBuilder();
+
+  Iterable<Code> get statements => _builder.build().statements;
 
   void visit(Block block) {
     // A leaf node (block with no children).
@@ -276,15 +278,16 @@ class SequenceBlockVisitor {
         }
         break;
       case BlockType.text:
-        statements.add(reference(storylineParameter.name).property("add").call(
-            [literal(escapeDollarSign(block.content))],
-            namedArguments: {"wholeSentence": literal(true)}));
+        _builder.addExpression(refer(storylineParameter.name)
+            .property("add")
+            .call([literal(escapeWritersText(block.content))],
+                {"wholeSentence": literalTrue}));
         break;
       case BlockType.code:
-        statements.add(new StatementBuilder.raw((_) => block.content));
+        _builder.statements.add(Code(block.content));
         break;
       case BlockType.ruleset:
-        statements.add(_visitRuleset(block));
+        _builder.addExpression(_visitRuleset(block));
         break;
       case BlockType.rule:
       case BlockType.ruleCondition:
@@ -313,28 +316,27 @@ class SequenceBlockVisitor {
       conditionCode = "true";
     }
 
-    final isApplicable = createApplicabilityContextClosure()
-      ..addStatement(
-          new ExpressionBuilder.raw((_) => conditionCode).asReturn());
+    final isApplicable = createApplicabilityContextMethod()
+      ..block.statements.add(Code('return $conditionCode;'));
 
     final consequenceVisitor = new SequenceBlockVisitor();
     rule.children.last.accept(consequenceVisitor);
 
-    final applyClosure = createActionContextClosure()
-      ..addStatements(consequenceVisitor.statements);
+    final applyClosure = createActionContextMethod()
+      ..block.statements.addAll(consequenceVisitor.statements);
 
     final instanceBuilder = ruleType.newInstance([
       literal(hashCode),
       literal(specificity),
       literal(onlyOnce),
-      isApplicable,
-      applyClosure
+      isApplicable.bakeAsClosure(),
+      applyClosure.bakeAsClosure(),
     ]);
     return new _ParsedRule(specificity, instanceBuilder);
   }
 
-  StatementBuilder _visitRuleset(Block ruleset) {
-    //     final ruleset = new Ruleset(
+  Expression _visitRuleset(Block ruleset) {
+    //     new Ruleset(
     //       new Rule(42, 1, true, (c) => a.isPlayer,
     //           (c) => outcome = 42),
     //       new Rule(43, 2, false, (c) => a.isPlayer && a.name == "Aren",
@@ -346,9 +348,9 @@ class SequenceBlockVisitor {
     final parsedRules =
         ruleset.children.map<_ParsedRule>(_visitRule).toList(growable: false);
     parsedRules.sort();
-    final NewInstanceBuilder rulesetConstructor = rulesetType.newInstance(
-        parsedRules.map<NewInstanceBuilder>((rule) => rule.instanceBuilder));
-    return rulesetConstructor.invoke("apply", [reference("c")]);
+    final Expression rulesetConstructor = rulesetType
+        .newInstance(parsedRules.map((rule) => rule.instanceBuilder));
+    return rulesetConstructor.property('apply').call([refer("c")]);
   }
 }
 
@@ -358,7 +360,7 @@ class SequenceBlockVisitor {
 class _ParsedRule implements Comparable<_ParsedRule> {
   final int specificity;
 
-  final NewInstanceBuilder instanceBuilder;
+  final Expression instanceBuilder;
 
   _ParsedRule(this.specificity, this.instanceBuilder);
 

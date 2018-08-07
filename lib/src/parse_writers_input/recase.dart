@@ -1,5 +1,4 @@
-import 'package:edgehead/fractal_stories/shared_constants.dart';
-import 'package:edgehead/sourcegen/src/recase/recase.dart' as rc;
+import '../recase/recase.dart' as rc;
 
 ReCase reCase(String string) {
   assert(string.startsWith(r'$'), "Identifier $string doesn't start with \$.");
@@ -9,6 +8,8 @@ ReCase reCase(String string) {
 /// A modified [rc.ReCase] class that supports `__END_OF_ROAM__` as an
 /// identifier.
 class ReCase {
+  static const endOfRoamName = '__END_OF_ROAM__';
+
   String _camelCase;
 
   String _pascalCase;

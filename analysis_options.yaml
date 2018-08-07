@@ -1,8 +1,6 @@
 analyzer:
-   exclude:
-     - lib/src/generators/writers_input_generator.dart
-     - lib/src/parse_writers_input.dart
-     - lib/src/parse_writers_input/**
+  strong-mode:
+    implicit-casts: false
 
 # Lint rules and documentation, see http://dart-lang.github.io/linter/lints
 linter:

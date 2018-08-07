@@ -2,29 +2,38 @@ import 'package:code_builder/code_builder.dart';
 
 import 'types.dart';
 
-final ParameterBuilder actionContextParameter =
-    new ParameterBuilder("c", type: actionContextType);
+final Parameter actionContextParameter = Parameter((b) => b
+  ..name = 'c'
+  ..type = actionContextType);
 
-final ParameterBuilder actorParameter =
-    new ParameterBuilder("a", type: actorType);
+final Parameter actorParameter = Parameter((b) => b
+  ..name = 'a'
+  ..type = actorType);
 
-final ParameterBuilder applicabilityContextParameter =
-    new ParameterBuilder("c", type: applicabilityContextType);
+final Parameter applicabilityContextParameter = Parameter((b) => b
+  ..name = 'c'
+  ..type = applicabilityContextType);
 
-final ParameterBuilder nullParameter =
-    new ParameterBuilder("_", type: new TypeBuilder('Null'));
+final Parameter nullParameter = Parameter((b) => b
+  ..name = '_'
+  ..type = nullType);
 
-final ParameterBuilder originalWorldParameter =
-    new ParameterBuilder("originalWorld", type: worldStateType);
+final Parameter originalWorldParameter = Parameter((b) => b
+  ..name = 'originalWorld'
+  ..type = worldStateType);
 
-final ParameterBuilder simulationParameter =
-    new ParameterBuilder("sim", type: simulationType);
+final Parameter simulationParameter = Parameter((b) => b
+  ..name = 'sim'
+  ..type = simulationType);
 
-final ParameterBuilder storylineParameter =
-    new ParameterBuilder("s", type: storylineType);
+final Parameter storylineParameter = Parameter((b) => b
+  ..name = 's'
+  ..type = storylineType);
 
-final ParameterBuilder worldParameter =
-    new ParameterBuilder("w", type: worldStateType);
+final Parameter worldParameter = Parameter((b) => b
+  ..name = 'w'
+  ..type = worldStateType);
 
-final ParameterBuilder worldStateBuilderParameter =
-    new ParameterBuilder("w", type: worldStateBuilderType);
+final Parameter worldStateBuilderParameter = Parameter((b) => b
+  ..name = 'w'
+  ..type = worldStateBuilderType);

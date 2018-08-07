@@ -3,35 +3,24 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart' as cb;
-import 'package:code_builder/code_builder.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input.dart' hide log;
-import 'package:edgehead/sourcegen/src/parse_writers_input/generated_action.dart'
-    hide log;
-import 'package:edgehead/sourcegen/src/parse_writers_input/generated_approach.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/generated_game_object.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/generated_room.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/types.dart';
+import 'package:dart_style/dart_style.dart';
+import 'package:egamebook_builder/writers_builder.dart';
 import 'package:glob/glob.dart';
 import 'package:source_gen/source_gen.dart';
 
-/// Used for annotating writer's input libraries.
-class GatherWriterInputFrom {
-  final List<String> globs;
-
-  const GatherWriterInputFrom(this.globs);
-
-  @override
-  String toString() => "Contents of this library will be generated from "
-      "text files in given glob. The glob is recursive, so you can provide"
-      "just the top-level directory.";
-}
+import '../parse_writers_input/generated_action.dart' hide log;
+import '../parse_writers_input/generated_approach.dart';
+import '../parse_writers_input/generated_game_object.dart';
+import '../parse_writers_input/generated_room.dart';
+import '../parse_writers_input/parse_writers_input.dart' hide log;
+import '../parse_writers_input/types.dart';
 
 /// Generator for FunctionSerializer.
 class WritersInputGenerator extends Generator {
   // Allow creating via `const` as well as enforces immutability here.
-  const WritersInputGenerator();
-
   static const List<String> validExtensions = const [".txt"];
+
+  const WritersInputGenerator();
 
   @override
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
@@ -59,12 +48,14 @@ class WritersInputGenerator extends Generator {
         .listValue
         .map((dartObject) => dartObject.toStringValue());
 
-    final cb.LibraryBuilder lib = new cb.LibraryBuilder("writers_input");
+    final cb.LibraryBuilder lib = new cb.LibraryBuilder();
     List<GeneratedGameObject> objects = [];
 
     for (final glob in globs) {
+      log.info('Traversing glob $glob');
       final assetIds = buildStep.findAssets(new Glob(glob, recursive: true));
-      for (final id in assetIds) {
+      await for (final id in assetIds) {
+        log.info('Compiling $id');
         if (!validExtensions.contains(id.extension)) continue;
         final path = id.uri.toString();
         final List<String> lines =
@@ -86,67 +77,51 @@ class WritersInputGenerator extends Generator {
       }
     }
 
-    lib.addDirectives(allNeededTypes.map((b) => b.toImportBuilder()));
-    lib.addDirective(new ImportBuilder("package:built_value/built_value.dart"));
-    lib.addDirective(new ImportBuilder("package:built_value/serializer.dart"));
-    lib.addDirective(
-        new ImportBuilder("package:edgehead/writers_helpers.dart"));
+    lib.directives.addAll((allNeededTypes
+        .map((type) => cb.Directive.import(type.url, show: [type.symbol]))));
 
-    lib.addDirective(new cb.PartBuilder("$fileName.g.g.dart"));
+    lib.directives
+        .add(cb.Directive.import('package:built_value/built_value.dart'));
+    lib.directives
+        .add(cb.Directive.import('package:built_value/serializer.dart'));
+    lib.directives
+        .add(cb.Directive.import('package:edgehead/writers_helpers.dart'));
+
+    lib.body.add(cb.Code("part '$fileName.compiled.g.dart';"));
 
     final devMode = false;
     if (devMode) {
       log.warning("Building in dev mode (less runtime asserts).");
     }
-    lib.addMember(new cb.FieldBuilder.asConst('DEV_MODE',
-        type: boolType, value: literal(devMode)));
+    lib.body.add(cb.Field((b) => b
+      ..name = 'DEV_MODE'
+      ..type = boolType
+      ..modifier = cb.FieldModifier.constant
+      ..assignment = cb.literal(devMode).code));
 
-    final List<GeneratedRoom> rooms = objects
-        .where((o) => o is GeneratedRoom)
-        .toList(growable: false) as List<GeneratedRoom>;
+    final List<GeneratedRoom> rooms =
+        objects.whereType<GeneratedRoom>().toList(growable: false);
     for (final room in rooms) {
       room.registerReachableRooms(rooms.map((r) => r.writersName));
     }
 
     for (final object in objects) {
-      lib.addMembers(object.finalizeAst());
+      lib.body.addAll(object.finalizeAst());
     }
 
-    lib.addMember(generateAllRooms(objects));
-    lib.addMember(generateAllApproaches(objects));
-    lib.addMember(generateAllActionInstances(objects));
+    lib.body.add(generateAllRooms(objects));
+    lib.body.add(generateAllApproaches(objects));
+    lib.body.add(generateAllActionInstances(objects));
 
-    final source = cb.prettyToSource(lib.buildAst());
+    final emitter = new cb.DartEmitter();
+    final source = new DartFormatter().format('${lib.build().accept(emitter)}');
 
+    // TODO: add at the top as static code
     final sourceWithUnusedLinterIgnore =
         "// ignore_for_file: unused_local_variable\n\n"
         "$source";
 
     result.writeln(sourceWithUnusedLinterIgnore);
-//
-//
-//
-//          final globbedLibraryElement = await buildStep.resolver.libraryFor(id);
-//          final globbedLibrary = new LibraryReader(globbedLibraryElement);
-//
-//          for (final element in globbedLibrary.allElements) {
-//            if (element is! FunctionElement) continue;
-//            final func = element as FunctionElement;
-//            if (!func.type.isAssignableTo(functionType)) continue;
-//
-//            result.writeln("'${func.name}': ${func.name},");
-//
-//            if (!func.isAccessibleIn(inputLibrary.element)) {
-//              log.warning("${func.name} isn't accessible "
-//                  "in ${inputLibrary.element.displayName}. Consider adding import "
-//                  "of ${func.library.source.uri}");
-//            }
-//          }
-//        }
-//      }
-//
-//      result.writeln("});");
-//    }
 
     if (result.isNotEmpty) {
       return result.toString();

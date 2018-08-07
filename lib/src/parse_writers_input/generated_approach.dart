@@ -1,13 +1,10 @@
-import 'package:analyzer/analyzer.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/describer.dart';
 import 'package:logging/logging.dart';
 
+import 'describer.dart';
 import 'generated_game_object.dart';
 import 'recase.dart';
 import 'types.dart';
-
-final Logger _log = new Logger("generated_approach");
 
 GeneratedGameObject generateApproach(Map<String, String> map, String dirPath) {
   return new GeneratedApproach(new Map.from(map), dirPath);
@@ -25,15 +22,16 @@ class GeneratedApproach extends GeneratedGameObject {
             _parseFromTo(map['APPROACH']).bothCamelCased, approachType, path);
 
   @override
-  Iterable<AstBuilder<AstNode>> finalizeAst() sync* {
+  Iterable<Spec> finalizeAst() sync* {
     var newInstance = approachType.newInstance([
       literal(_tuple.from.snakeCase),
       literal(_tuple.to.snakeCase),
       literal(_map['COMMAND'] ?? ''),
       createDescriber(_map['DESCRIPTION']),
     ]);
-    var assignment = newInstance.asVar(name, approachType);
-    yield assignment;
+    // TODO: investigate if this can be assignFinal
+    var assignment = newInstance.assignVar(name, approachType);
+    yield assignment.statement;
   }
 
   /// Takes string in the form of `"$smelter FROM $war_forges"` and returns

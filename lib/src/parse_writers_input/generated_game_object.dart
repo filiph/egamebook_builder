@@ -1,7 +1,7 @@
 import 'package:code_builder/code_builder.dart';
 
 abstract class GeneratedGameObject {
-  final TypeBuilder type;
+  final TypeReference type;
 
   /// The path to the original source file of this game object.
   final String path;
@@ -23,5 +23,7 @@ abstract class GeneratedGameObject {
   GeneratedGameObject(String writersName, this.name, this.type, this.path)
       : writersName = validateAndRemoveDollarSign(writersName);
 
-  Iterable<AstBuilder> finalizeAst();
+  /// The method responsible for building the `code_builder` representation
+  /// of this game object.
+  Iterable<Spec> finalizeAst();
 }

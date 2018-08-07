@@ -1,8 +1,8 @@
-import 'package:analyzer/analyzer.dart';
+//import 'package:analyzer/analyzer.dart';
 import 'package:code_builder/code_builder.dart';
-import 'package:edgehead/sourcegen/src/parse_writers_input/describer.dart';
 import 'package:logging/logging.dart';
 
+import 'describer.dart';
 import 'generated_game_object.dart';
 import 'method_builders.dart';
 import 'parse_code_blocks.dart';
@@ -15,8 +15,6 @@ import 'types.dart';
 ///
 ///     $ironcast_road (Go to Fort Ironcast): You start towards the fort.
 final RegExp exitPattern = new RegExp(r"^(\$\w+)\s+\((.*?)\):\s(.+)$");
-
-final Logger _log = new Logger("generated_room");
 
 GeneratedGameObject generateRoom(Map<String, String> map, String dirPath) {
   return new GeneratedRoom(new Map.from(map), dirPath);
@@ -32,19 +30,19 @@ class GeneratedRoom extends GeneratedGameObject {
         super(map['ROOM'], reCase(map['ROOM']).camelCase, roomType, path);
 
   @override
-  Iterable<AstBuilder<AstNode>> finalizeAst() sync* {
+  Iterable<Spec> finalizeAst() sync* {
     assert(_reachableRooms != null);
 
     var instanceName = name;
 
-    ExpressionBuilder fightGenerator;
+    Expression fightGenerator;
     if (_map['FIGHT_SITUATION'] == null || _map['FIGHT_SITUATION'].isEmpty) {
       fightGenerator = literal(null);
     } else {
-      fightGenerator = reference(_map['FIGHT_SITUATION'].trim());
+      fightGenerator = refer(_map['FIGHT_SITUATION'].trim());
     }
 
-    final Map<String, ExpressionBuilder> namedArguments = {};
+    final Map<String, Expression> namedArguments = {};
     // TODO: add named argument for groundMaterial
 
     if (_map.containsKey('VARIANT_OF')) {
@@ -58,14 +56,13 @@ class GeneratedRoom extends GeneratedGameObject {
 
       final roomNameHash = writersName.hashCode;
       final specificity = getSpecificity(_map['RULE']);
-      final isApplicable = createApplicabilityContextClosure()
-        ..addStatement(
-            new ExpressionBuilder.raw((_) => _map['RULE']).asReturn());
+      final isApplicable = createApplicabilityContextMethod();
+      isApplicable.block.statements.add(Code('return ${_map["RULE"]};'));
       final prerequisite = prerequisiteType.newInstance([
         literal(roomNameHash),
         literal(specificity),
         literal(true) /* TODO: allow onlyOnce rooms/variants */,
-        isApplicable
+        isApplicable.bakeAsClosure()
       ]);
       namedArguments["prerequisite"] = prerequisite;
     }
@@ -76,9 +73,10 @@ class GeneratedRoom extends GeneratedGameObject {
       createDescriber(_map['DESCRIPTION']),
       fightGenerator,
       literal(null) /* TODO: add item generator */,
-    ], named: namedArguments);
-    var assignment = newInstance.asVar(instanceName, roomType);
-    yield assignment;
+    ], namedArguments);
+    // TODO: investigate if okay to use assignFinal (or even const)
+    var assignment = newInstance.assignFinal(instanceName, roomType);
+    yield assignment.statement;
   }
 
   /// Registers the rooms that are reachable. This makes sure that we don't

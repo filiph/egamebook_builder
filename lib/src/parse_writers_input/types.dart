@@ -1,24 +1,26 @@
+import 'package:built_collection/built_collection.dart';
 import 'package:code_builder/code_builder.dart';
 
 // ignore_for_file: type_annotate_public_apis
 
-final actionContextType = new TypeBuilder("ActionContext",
-    importFrom: "package:edgehead/fractal_stories/context.dart");
+final actionContextType = TypeReference((b) => b
+  ..symbol = "ActionContext"
+  ..url = "package:edgehead/fractal_stories/context.dart");
 
-final actionType = new TypeBuilder("RoamingAction",
-    importFrom: "package:edgehead/fractal_stories/writer_action.dart");
+final actionType = TypeReference((b) => b
+  ..symbol = 'RoamingAction'
+  ..url = 'package:edgehead/fractal_stories/writer_action.dart');
 
-final actorType = new TypeBuilder("Actor",
-    importFrom: "package:edgehead/fractal_stories/actor.dart");
+final actorType = TypeReference((b) => b
+  ..symbol = 'Actor'
+  ..url = 'package:edgehead/fractal_stories/actor.dart');
 
-final allNeededTypes = <TypeBuilder>[
+final allNeededTypes = <TypeReference>[
   actionContextType,
   actionType,
   actorType,
   approachType,
   applicabilityContextType,
-  builtType,
-  builderType,
   prerequisiteType,
   reasonedSuccessChanceType,
   resourceType,
@@ -26,9 +28,9 @@ final allNeededTypes = <TypeBuilder>[
   roomType,
   ruleType,
   rulesetType,
-  serializerType,
   simpleActionType,
   simulationType,
+  situationBaseBehaviorType,
   situationType,
   storylineType,
   weaponTypeType,
@@ -36,79 +38,110 @@ final allNeededTypes = <TypeBuilder>[
   worldStateType,
 ];
 
-final applicabilityContextType = new TypeBuilder("ApplicabilityContext",
-    importFrom: "package:edgehead/fractal_stories/context.dart");
+final applicabilityContextType = TypeReference((b) => b
+  ..symbol = 'ApplicabilityContext'
+  ..url = 'package:edgehead/fractal_stories/context.dart');
 
-final approachType = new TypeBuilder("Approach",
-    importFrom: "package:edgehead/fractal_stories/room_approach.dart");
+final approachType = TypeReference((b) => b
+  ..symbol = 'Approach'
+  ..url = 'package:edgehead/fractal_stories/room_approach.dart');
 
-final boolType = new TypeBuilder("bool");
+final boolType = TypeReference((b) => b..symbol = 'bool');
 
-final builderType = new TypeBuilder("Builder",
-    importFrom: "package:built_value/built_value.dart");
+final builderType = TypeReference((b) => b
+  ..symbol = 'Builder'
+  ..url = 'package:built_value/built_value.dart');
 
-final builtType = new TypeBuilder("Built",
-    importFrom: "package:built_value/built_value.dart");
+final builtType = TypeReference((b) => b
+  ..symbol = 'Built'
+  ..url = 'package:built_value/built_value.dart');
 
-final intType = new TypeBuilder("int");
+final intType = TypeReference((b) => b..symbol = 'int');
 
-final listOfActionType = new TypeBuilder('List', genericTypes: [actionType]);
+/// TODO: just use ..types.add(...) here and elsewhere in this file
+final listOfActionType = TypeReference((b) => b
+  ..symbol = 'List'
+  ..types.add(actionType));
 
-final listOfApproachType =
-    new TypeBuilder('List', genericTypes: [approachType]);
+final listOfApproachType = TypeReference((b) => b
+  ..symbol = 'List'
+  ..types = ListBuilder<Reference>([approachType]));
 
-final listOfRoomsType = new TypeBuilder('List', genericTypes: [roomType]);
+final listOfRoomsType = TypeReference((b) => b
+  ..symbol = 'List'
+  ..types = ListBuilder<Reference>([roomType]));
 
-final numType = new TypeBuilder("num");
+final nullType = TypeReference((b) => b..symbol = 'Null');
 
-final prerequisiteType = new TypeBuilder("Prerequisite",
-    importFrom: "package:edgehead/ruleset/ruleset.dart");
+final numType = TypeReference((b) => b..symbol = 'num');
 
-final reasonedSuccessChanceType = new TypeBuilder("ReasonedSuccessChance",
-    genericTypes: [new TypeBuilder("Null")],
-    importFrom: "package:edgehead/fractal_stories/action.dart");
+final prerequisiteType = TypeReference((b) => b
+  ..symbol = 'Prerequisite'
+  ..url = 'package:edgehead/ruleset/ruleset.dart');
 
-final resourceType = new TypeBuilder("Resource",
-    importFrom: "package:edgehead/fractal_stories/action.dart");
+final reasonedSuccessChanceType = TypeReference((b) => b
+  ..symbol = 'ReasonedSuccessChance'
+  ..types = ListBuilder<Reference>([nullType])
+  ..url = 'package:edgehead/fractal_stories/action.dart');
 
-final roomRoamingSituationType = new TypeBuilder('RoomRoamingSituation',
-    importFrom:
-        'package:edgehead/src/room_roaming/room_roaming_situation.dart');
+final resourceType = TypeReference((b) => b
+  ..symbol = 'Resource'
+  ..url = 'package:edgehead/fractal_stories/action.dart');
 
-final roomType = new TypeBuilder("Room",
-    importFrom: "package:edgehead/fractal_stories/room.dart");
+final roomRoamingSituationType = TypeReference((b) => b
+  ..symbol = 'RoomRoamingSituation'
+  ..url = 'package:edgehead/src/room_roaming/room_roaming_situation.dart');
 
-final rulesetType = new TypeBuilder("Ruleset",
-    importFrom: "package:edgehead/ruleset/ruleset.dart");
+final roomType = TypeReference((b) => b
+  ..symbol = 'Room'
+  ..url = 'package:edgehead/fractal_stories/room.dart');
 
-final ruleType = new TypeBuilder("Rule",
-    importFrom: "package:edgehead/ruleset/ruleset.dart");
+final rulesetType = TypeReference((b) => b
+  ..symbol = 'Ruleset'
+  ..url = 'package:edgehead/ruleset/ruleset.dart');
 
-final serializerType = new TypeBuilder("Serializer",
-    importFrom: "package:built_value/serializer.dart");
+final ruleType = TypeReference((b) => b
+  ..symbol = 'Rule'
+  ..url = 'package:edgehead/ruleset/ruleset.dart');
 
-final simpleActionApplyFunction = new TypeBuilder("SimpleActionApplyFunction",
-    importFrom: "package:edgehead/fractal_stories/writer_action.dart");
+final serializerType = TypeReference((b) => b
+  ..symbol = 'Serializer'
+  ..url = 'package:built_value/serializer.dart');
 
-final simpleActionType = new TypeBuilder("SimpleAction",
-    importFrom: "package:edgehead/fractal_stories/writer_action.dart");
+final simpleActionApplyFunction = TypeReference((b) => b
+  ..symbol = 'SimpleActionApplyFunction'
+  ..url = 'package:edgehead/fractal_stories/writer_action.dart');
 
-final simulationType = new TypeBuilder("Simulation",
-    importFrom: "package:edgehead/fractal_stories/simulation.dart");
+final simpleActionType = TypeReference((b) => b
+  ..symbol = 'SimpleAction'
+  ..url = 'package:edgehead/fractal_stories/writer_action.dart');
 
-final situationType = new TypeBuilder("Situation",
-    importFrom: "package:edgehead/fractal_stories/situation.dart");
+final simulationType = TypeReference((b) => b
+  ..symbol = 'Simulation'
+  ..url = 'package:edgehead/fractal_stories/simulation.dart');
 
-final storylineType = new TypeBuilder("Storyline",
-    importFrom: "package:edgehead/fractal_stories/storyline/storyline.dart");
+final situationBaseBehaviorType = TypeReference((b) => b
+  ..symbol = 'SituationBaseBehavior'
+  ..url = 'package:edgehead/fractal_stories/situation.dart');
 
-final stringType = new TypeBuilder("String");
+final situationType = TypeReference((b) => b
+  ..symbol = 'Situation'
+  ..url = 'package:edgehead/fractal_stories/situation.dart');
 
-final weaponTypeType = new TypeBuilder("WeaponType",
-    importFrom: "package:edgehead/fractal_stories/items/weapon_type.dart");
+final storylineType = TypeReference((b) => b
+  ..symbol = 'Storyline'
+  ..url = 'package:edgehead/fractal_stories/storyline/storyline.dart');
 
-final worldStateBuilderType = new TypeBuilder("WorldStateBuilder",
-    importFrom: "package:edgehead/fractal_stories/world_state.dart");
+final stringType = TypeReference((b) => b..symbol = 'String');
 
-final worldStateType = new TypeBuilder("WorldState",
-    importFrom: "package:edgehead/fractal_stories/world_state.dart");
+final weaponTypeType = TypeReference((b) => b
+  ..symbol = 'WeaponType'
+  ..url = 'package:edgehead/fractal_stories/items/weapon_type.dart');
+
+final worldStateBuilderType = TypeReference((b) => b
+  ..symbol = 'WorldStateBuilder'
+  ..url = 'package:edgehead/fractal_stories/world_state.dart');
+
+final worldStateType = TypeReference((b) => b
+  ..symbol = 'WorldState'
+  ..url = 'package:edgehead/fractal_stories/world_state.dart');

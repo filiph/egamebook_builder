@@ -9,3 +9,10 @@ builders:
     defaults:
       generate_for:
         - '**/*_gather.dart'
+
+  writers_builder:
+    import: "package:egamebook_builder/writers_builder.dart"
+    builder_factories: ["writersBuilder"]
+    build_extensions: {".dart": [".compiled.dart"]}
+    build_to: source
+    auto_apply: none
