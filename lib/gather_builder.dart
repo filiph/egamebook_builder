@@ -1,5 +1,4 @@
 import 'package:build/build.dart';
-import 'package:egamebook_builder/src/generators/function_serializer_generator.dart';
 import 'package:egamebook_builder/src/generators/instance_serializer_generator.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -7,5 +6,4 @@ import 'package:source_gen/source_gen.dart';
 /// summarize their contents into a single one.
 Builder gatherBuilder(BuilderOptions options) => PartBuilder([
       const InstanceSerializerGenerator(),
-      const FunctionSerializerGenerator(),
     ], generatedExtension: '.gathered.dart');

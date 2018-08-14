@@ -2,6 +2,7 @@ import 'package:built_value/serializer.dart';
 
 /// Used for annotating [FunctionSerializer] top-level variables for
 /// source generation.
+@Deprecated('wrap function with an object and use GatherInstancesFrom instead')
 class GatherFunctionsFrom {
   final Type functionType;
 

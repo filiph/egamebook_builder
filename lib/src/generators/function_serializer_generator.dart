@@ -11,6 +11,7 @@ import '../ensure_part_import.dart';
 import '../recase/recase.dart';
 
 /// Generator for FunctionSerializer.
+@deprecated
 class FunctionSerializerGenerator extends Generator {
   // Allow creating via `const` as well as enforces immutability here.
   const FunctionSerializerGenerator();
