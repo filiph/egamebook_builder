@@ -1,5 +1,4 @@
 import 'package:code_builder/code_builder.dart';
-import 'package:egamebook_builder/src/parse_writers_input/list.dart';
 
 import '../recase/recase.dart';
 import 'generate_simple_action.dart';
@@ -121,7 +120,7 @@ Spec generateRescueSituation(
   var effect = "${rescueEffect ?? ''}\n"
       "${successEffect ?? ''}";
   final actionsGetter = createGetter('actions', listOfActionType);
-  actionsGetter.block.statements.add(listReturned([
+  actionsGetter.block.statements.add(literalList([
     generateSimpleAction("${writersName}_rescue", rescueCommand,
         rescueDescription, rescuePrerequisites, effect, rescueHint, className),
     generateSimpleAction(
@@ -132,7 +131,7 @@ Spec generateRescueSituation(
         continuationEffect,
         continuationHint,
         className)
-  ]));
+  ]).statement);
   situationClass.methods.add(actionsGetter.bake());
 
   //    @override
@@ -190,10 +189,12 @@ Spec generateRescueSituation(
           .property('actors')
           .property('singleWhere')
           .call([
-        Method((b) => b
-          ..requiredParameters.add(Parameter((p) => p..name = 'a'))
-          ..body = refer('a').property('isPlayer').code).closure
-      ]).returned.statement
+            Method((b) => b
+              ..requiredParameters.add(Parameter((p) => p..name = 'a'))
+              ..body = refer('a').property('isPlayer').code).closure
+          ])
+          .returned
+          .statement
     ]);
   situationClass.methods.add(getActorAtTimeMethod.build());
 
@@ -216,10 +217,16 @@ Spec generateRescueSituation(
       simulationParameter,
       worldParameter,
     ])
-  ..body = listReturned([refer('actors').property('singleWhere').call([
-    Method((b) => b..requiredParameters.add(actorParameter)..body = refer(actorParameter.name)
-    .property('isPlayer').returned.statement).closure
-  ])]);
+    ..body = literalList([
+      refer('actors').property('singleWhere').call([
+        Method((b) => b
+          ..requiredParameters.add(actorParameter)
+          ..body = refer(actorParameter.name)
+              .property('isPlayer')
+              .returned
+              .statement).closure
+      ])
+    ]).statement;
   situationClass.methods.add(getActorsMethod.build());
 
   return situationClass.build();
