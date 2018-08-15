@@ -131,7 +131,7 @@ Spec generateRescueSituation(
         continuationEffect,
         continuationHint,
         className)
-  ]).statement);
+  ]).returned.statement);
   situationClass.methods.add(actionsGetter.bake());
 
   //    @override
