@@ -25,6 +25,9 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   /// Precomputed map that leads from the instances of [T] to the [string]s.
   final Map<T, String> _inverseMap = {};
 
+  /// Additional types that this serializer can serialize.
+  final List<Type> otherTypes;
+
   String _wireName;
 
   /// Creates a serializer for instances of [T]. Provide a [Map] from strings
@@ -37,7 +40,7 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   ///     final serializer = new InstanceSerializer<Action>({
   ///         "sayHello": sayHello,
   ///     });
-  InstanceSerializer(this._map) {
+  InstanceSerializer(this._map, {this.otherTypes = const []}) {
     for (final key in _map.keys) {
       final value = _map[key];
       if (_wireName == null) {
@@ -60,7 +63,7 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   }
 
   @override
-  Iterable<Type> get types => [T];
+  Iterable<Type> get types => [T] + otherTypes;
 
   @override
   String get wireName => "Instance[$_wireName]";
