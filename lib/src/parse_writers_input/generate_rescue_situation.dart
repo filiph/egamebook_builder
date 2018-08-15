@@ -97,7 +97,7 @@ Spec generateRescueSituation(
           Method((m) => m
             ..requiredParameters.add(Parameter((p) => p..name = 'b'))
             ..body = Block((c) => c
-              ..addExpression(refer('id').assign(refer('b').property('id')))
+              ..addExpression(refer('b').property('id').assign(refer('id')))
               ..addExpression(
                   refer('b').property('time').assign(literal(0))))).closure
         ])
