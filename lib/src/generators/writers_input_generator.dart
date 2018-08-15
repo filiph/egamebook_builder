@@ -52,10 +52,10 @@ class WritersInputGenerator extends Generator {
     List<GeneratedGameObject> objects = [];
 
     for (final glob in globs) {
-      log.info('Traversing glob $glob');
+      log.fine('Traversing glob $glob');
       final assetIds = buildStep.findAssets(new Glob(glob, recursive: true));
       await for (final id in assetIds) {
-        log.info('Compiling $id');
+        log.finer('Compiling $id');
         if (!validExtensions.contains(id.extension)) continue;
         final path = id.uri.toString();
         final List<String> lines =

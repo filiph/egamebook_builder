@@ -7,10 +7,16 @@ import 'package:built_value/serializer.dart';
 ///
 ///     @GatherInstancesFrom(const ['lib/**/actions/*.dart'])
 ///     final InstanceSerializer<Action> actionSerializer = _$actionSerializer;
+///
+/// If you'll be serializing from other types than the root type (`Action` in
+/// the above example), you can provide them with the named parameter
+/// [additionalTypes]. These types must be subclasses of the root type.
 class GatherInstancesFrom {
   final List<String> globs;
 
-  const GatherInstancesFrom(this.globs);
+  final List<Type> additionalTypes;
+
+  const GatherInstancesFrom(this.globs, {this.additionalTypes = const []});
 
   @override
   String toString() => "Instances for this InstanceSerializer will be gathered "
@@ -26,7 +32,7 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   final Map<T, String> _inverseMap = {};
 
   /// Additional types that this serializer can serialize.
-  final List<Type> otherTypes;
+  final List<Type> additionalTypes;
 
   String _wireName;
 
@@ -40,7 +46,7 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   ///     final serializer = new InstanceSerializer<Action>({
   ///         "sayHello": sayHello,
   ///     });
-  InstanceSerializer(this._map, {this.otherTypes = const []}) {
+  InstanceSerializer(this._map, {this.additionalTypes = const []}) {
     for (final key in _map.keys) {
       final value = _map[key];
       if (_wireName == null) {
@@ -63,7 +69,7 @@ class InstanceSerializer<T> extends PrimitiveSerializer<T> {
   }
 
   @override
-  Iterable<Type> get types => [T] + otherTypes;
+  Iterable<Type> get types => [T] + additionalTypes;
 
   @override
   String get wireName => "Instance[$_wireName]";

@@ -111,7 +111,28 @@ class InstanceSerializerGenerator extends Generator {
         }
       }
 
-      result.writeln("});");
+      // End the map.
+      result.write("}");
+
+      final additionalTypes = declaration.annotation
+          .read("additionalTypes")
+          .listValue
+          .map((dartObject) => dartObject.toTypeValue());
+
+      if (additionalTypes.isNotEmpty) {
+        // , additionalTypes: [
+        //  EnemyTargetAction,
+        //  OtherActorAction
+        // ]
+        result.writeln(", additionalTypes: [");
+        for (final type in additionalTypes) {
+          result.write(type.name);
+          result.writeln(",");
+        }
+        result.write("]");
+      }
+
+      result.writeln(");");
     }
 
     if (result.isNotEmpty) {
