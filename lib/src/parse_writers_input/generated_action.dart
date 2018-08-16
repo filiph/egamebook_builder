@@ -182,8 +182,7 @@ class GeneratedAction extends GeneratedGameObject {
     } else {
       assert(_map.containsKey('COMPLETE_SUCCESS_DESCRIPTION'),
           "$name is missing COMPLETE_SUCCESS_DESCRIPTION: $_map");
-      var successDescription =
-          escapeWritersText(_map['COMPLETE_SUCCESS_DESCRIPTION']);
+      var successDescription = _map['COMPLETE_SUCCESS_DESCRIPTION'];
       applySuccessBuilder.block.statements
           .addAll(createDescriptionStatements(successDescription ?? ''));
       if (_map['SUCCESS_EFFECT'] != null) {
